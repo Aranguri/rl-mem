@@ -54,7 +54,7 @@ class AutoEncoder:
             'same', 'same', 'same'
         ]
         fc_sizes = [
-            64,
+            3,
         ]
 
         with tf.variable_scope('Encoder'):
@@ -109,56 +109,3 @@ class AutoEncoder:
     @property
     def summaries(self):
         return self._summaries
-
-
-
-def train(auto, n_iters):
-
-    import gzip
-    import pickle as cPickle
-    import os
-    import sys
-
-    f = gzip.open('mnist.pkl.gz', 'rb')
-    if sys.version_info < (3,):
-        data = cPickle.load(f)
-    else:
-        data = cPickle.load(f, encoding='bytes')
-        f.close()
-    (x_train, _), (x_test, _) = data
-
-    examples, _, _  = x_train.shape
-
-    optim = tf.train.AdamOptimizer()
-    train_op = optim.minimize(auto.loss)
-
-    if not os.path.isdir('./logs'):
-        os.mkdir('./logs')
-
-    file_writer = tf.summary.FileWriter('./logs')
-
-    with tf.Session() as sess:
-        sess.run(tf.global_variables_initializer())
-        file_writer.add_graph(sess.graph)
-
-        for iteration in tqdm(range(n_iters)):
-            batch_inds = np.random.choice(np.arange(examples), 32)
-            batch = x_train[batch_inds]
-            batch = np.reshape(batch, (32, 28, 28, 1))
-
-
-            _, summ = sess.run([train_op, auto.summaries], feed_dict={
-                auto.inpt: batch
-            })
-
-            if iteration % 100 == 0:
-                file_writer.add_summary(summ, global_step=iteration)
-
-
-
-if __name__ == '__main__':
-
-    autoencoder = AutoEncoder((28,28,1))
-
-
-    train(autoencoder, 10000)
